@@ -29,6 +29,8 @@ def process_library():
     ai_generator = AIArtifactGenerator()
 
     total = 0
+    successful = 0
+    failed = 0
 
     for semester in library.semesters:
 
@@ -42,78 +44,119 @@ def process_library():
 
                 print(f"\nProcessing: {pdf.name}")
 
-                # ----------------------------------------
-                # Download PDF
-                # ----------------------------------------
+                try:
 
-                download_pdf(
-                    service,
-                    pdf.file_id,
-                    pdf.local_pdf_path,
-                )
+                    # ----------------------------------------
+                    # Download PDF
+                    # ----------------------------------------
 
-                # ----------------------------------------
-                # Extract & clean text
-                # ----------------------------------------
+                    download_pdf(
+                        service,
+                        pdf.file_id,
+                        pdf.local_pdf_path,
+                    )
 
-                raw_text = extract_text(
-                    pdf.local_pdf_path
-                )
+                    # ----------------------------------------
+                    # Extract text
+                    # ----------------------------------------
 
-                cleaned_text = clean_text(
-                    raw_text
-                )
+                    raw_text = extract_text(
+                        pdf.local_pdf_path
+                    )
 
-                save_text(
-                    cleaned_text,
-                    pdf.local_text_path,
-                )
+                    # ----------------------------------------
+                    # Clean text
+                    # ----------------------------------------
 
-                # ----------------------------------------
-                # Populate metadata
-                # ----------------------------------------
+                    cleaned_text = clean_text(
+                        raw_text
+                    )
 
-                populate_metadata(pdf)
+                    # ----------------------------------------
+                    # Save cleaned text
+                    # ----------------------------------------
 
-                print(f"✓ Pages      : {pdf.page_count}")
-                print(f"✓ Words      : {pdf.word_count}")
-                print(f"✓ Characters : {pdf.character_count}")
-                print(
-                    f"✓ Read Time  : "
-                    f"{pdf.estimated_read_time} min"
-                )
+                    save_text(
+                        cleaned_text,
+                        pdf.local_text_path,
+                    )
 
-                # ----------------------------------------
-                # Generate AI artifacts
-                # ----------------------------------------
+                    # ----------------------------------------
+                    # Populate metadata
+                    # ----------------------------------------
 
-                print("Generating AI artifacts...")
+                    populate_metadata(pdf)
 
-                artifact = ai_generator.generate(
-                    cleaned_text
-                )
+                    print(
+                        f"✓ Pages      : {pdf.page_count}"
+                    )
 
-                ai_output_dir = (
-                    Path(pdf.local_text_path).parent
-                    / "ai"
-                )
+                    print(
+                        f"✓ Words      : {pdf.word_count}"
+                    )
 
-                stem = Path(
-                    pdf.local_text_path
-                ).stem
+                    print(
+                        f"✓ Characters : {pdf.character_count}"
+                    )
 
-                ai_generator.save(
-                    artifact,
-                    ai_output_dir,
-                    stem,
-                )
+                    print(
+                        f"✓ Read Time  : "
+                        f"{pdf.estimated_read_time} min"
+                    )
 
-                print("✓ AI artifacts generated.")
+                    # ----------------------------------------
+                    # Generate AI artifacts
+                    # ----------------------------------------
 
-                total += 1
+                    print("\nGenerating AI artifacts...")
+
+                    artifact = ai_generator.generate(
+                        cleaned_text
+                    )
+
+                    ai_output_dir = (
+                        Path(pdf.local_text_path).parent
+                        / "ai"
+                    )
+
+                    stem = Path(
+                        pdf.local_text_path
+                    ).stem
+
+                    ai_generator.save(
+                        artifact,
+                        ai_output_dir,
+                        stem,
+                    )
+
+                    print("✓ AI artifacts generated.")
+
+                    successful += 1
+
+                except Exception as e:
+
+                    failed += 1
+
+                    print("\n" + "-" * 60)
+                    print(
+                        f"✗ Failed to process: {pdf.name}"
+                    )
+                    print(
+                        f"Error Type : {type(e).__name__}"
+                    )
+                    print(f"Reason     : {e}")
+                    print("-" * 60)
+
+                finally:
+
+                    total += 1
 
     print("\n" + "=" * 60)
-    print(f"Successfully processed {total} PDF(s).")
+    print("Pipeline Finished")
+    print("=" * 60)
+    print(f"Successful : {successful}")
+    print(f"Failed     : {failed}")
+    print(f"Total      : {total}")
     print("=" * 60)
 
 
