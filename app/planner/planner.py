@@ -14,9 +14,17 @@ def main():
 
     tracker = StudySessionTracker()
 
-    # Load revision items
+    # Load study resources
 
     items = loader.load()
+
+    if not items:
+
+        print(
+            "No revision items found."
+        )
+
+        return
 
     # Calculate priorities
 
@@ -24,7 +32,7 @@ def main():
         items
     )
 
-    # Generate today's plan
+    # Generate revision plan
 
     session = scheduler.schedule(
         items,
@@ -40,7 +48,7 @@ def main():
     if not session.items:
 
         print(
-            "No revision items available."
+            "No tasks scheduled."
         )
 
     else:
@@ -75,7 +83,7 @@ def main():
         f"{session.total_minutes} minutes"
     )
 
-    # Collect user feedback
+    # Collect study feedback
 
     if session.items:
 
