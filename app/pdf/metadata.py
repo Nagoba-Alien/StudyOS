@@ -1,11 +1,7 @@
-from pathlib import Path
-
 import fitz
 
+from app.config import WORDS_PER_MINUTE
 from app.models import PDFDocument
-
-
-AVERAGE_READING_SPEED = 200  # words per minute
 
 
 def populate_metadata(pdf: PDFDocument):
@@ -32,5 +28,5 @@ def populate_metadata(pdf: PDFDocument):
 
     pdf.estimated_read_time = max(
         1,
-        round(pdf.word_count / AVERAGE_READING_SPEED),
+        round(pdf.word_count / WORDS_PER_MINUTE),
     )

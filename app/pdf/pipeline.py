@@ -1,7 +1,9 @@
 from pathlib import Path
 
 from app.ai.artifact_generator import AIArtifactGenerator
+
 from app.drive.drive import build_drive_tree
+
 from app.pdf.cleaner import clean_text
 from app.pdf.downloader import (
     download_pdf,
@@ -13,13 +15,22 @@ from app.pdf.extractor import (
 )
 from app.pdf.metadata import populate_metadata
 
+from app.planner.item_generator import (
+    RevisionItemGenerator,
+)
+
+from app.storage.revision_store import (
+    RevisionStore,
+)
+
 
 def process_library():
     """
     Download every PDF, extract text,
     clean it, save it,
     populate metadata,
-    and generate AI study artifacts.
+    generate AI artifacts,
+    and create revision items.
     """
 
     service = get_drive_service()
@@ -27,6 +38,10 @@ def process_library():
     library = build_drive_tree()
 
     ai_generator = AIArtifactGenerator()
+
+    revision_generator = RevisionItemGenerator()
+
+    revision_store = RevisionStore()
 
     total = 0
     successful = 0
@@ -108,7 +123,9 @@ def process_library():
                     # Generate AI artifacts
                     # ----------------------------------------
 
-                    print("\nGenerating AI artifacts...")
+                    print(
+                        "\nGenerating AI artifacts..."
+                    )
 
                     artifact = ai_generator.generate(
                         cleaned_text
@@ -129,7 +146,69 @@ def process_library():
                         stem,
                     )
 
-                    print("✓ AI artifacts generated.")
+                    print(
+                        "✓ AI artifacts generated."
+                    )
+
+                    # ----------------------------------------
+                    # Create Revision Item
+                    # ----------------------------------------
+
+                    revision_item = (
+                        revision_generator.generate(
+
+                            course=course.name,
+
+                            title=stem,
+
+                            pdf_path=(
+                                pdf.local_pdf_path
+                            ),
+
+                            text_path=(
+                                pdf.local_text_path
+                            ),
+
+                            summary_path=(
+                                ai_output_dir
+                                / f"{stem}_summary.md"
+                            ),
+
+                            notes_path=(
+                                ai_output_dir
+                                / f"{stem}_notes.md"
+                            ),
+
+                            flashcards_path=(
+                                ai_output_dir
+                                / f"{stem}_flashcards.json"
+                            ),
+
+                            topics_path=(
+                                ai_output_dir
+                                / f"{stem}_topics.json"
+                            ),
+
+                            difficulty_path=(
+                                ai_output_dir
+                                / f"{stem}_difficulty.json"
+                            ),
+
+                            artifact=artifact,
+
+                            word_count=(
+                                pdf.word_count
+                            ),
+                        )
+                    )
+
+                    revision_store.save(
+                        [revision_item]
+                    )
+
+                    print(
+                        "✓ Revision item created."
+                    )
 
                     successful += 1
 
@@ -137,28 +216,59 @@ def process_library():
 
                     failed += 1
 
-                    print("\n" + "-" * 60)
+                    print(
+                        "\n" + "-" * 60
+                    )
+
                     print(
                         f"✗ Failed to process: {pdf.name}"
                     )
+
                     print(
                         f"Error Type : {type(e).__name__}"
                     )
-                    print(f"Reason     : {e}")
-                    print("-" * 60)
+
+                    print(
+                        f"Reason     : {e}"
+                    )
+
+                    print(
+                        "-" * 60
+                    )
 
                 finally:
 
                     total += 1
 
-    print("\n" + "=" * 60)
-    print("Pipeline Finished")
-    print("=" * 60)
-    print(f"Successful : {successful}")
-    print(f"Failed     : {failed}")
-    print(f"Total      : {total}")
-    print("=" * 60)
+    print(
+        "\n" + "=" * 60
+    )
+
+    print(
+        "Pipeline Finished"
+    )
+
+    print(
+        "=" * 60
+    )
+
+    print(
+        f"Successful : {successful}"
+    )
+
+    print(
+        f"Failed     : {failed}"
+    )
+
+    print(
+        f"Total      : {total}"
+    )
+
+    print(
+        "=" * 60
+    )
 
 
 if __name__ == "__main__":
+
     process_library()

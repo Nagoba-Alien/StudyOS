@@ -2,76 +2,66 @@ import os
 
 from dotenv import load_dotenv
 from google import genai
-from google.genai import types
+
+from app.config import (
+    DEFAULT_TEMPERATURE,
+    GEMINI_MODEL,
+)
+
+load_dotenv()
 
 
 class GeminiClient:
     """
-    Reusable client for interacting with Google's Gemini API.
+    Wrapper around the Google Gemini API.
     """
 
     def __init__(self):
-        load_dotenv()
 
         api_key = os.getenv("GEMINI_API_KEY")
 
-        if not api_key:
+        if api_key is None:
             raise ValueError(
                 "GEMINI_API_KEY not found in .env"
             )
 
-        self.client = genai.Client(
-            api_key=api_key
-        )
+        self.client = genai.Client(api_key=api_key)
 
-        # Stable model for StudyOS
-        self.model = "models/gemini-3.5-flash-lite"
+        self.model = GEMINI_MODEL
 
     def generate(
         self,
         prompt: str,
-        temperature: float = 0.3,
+        temperature: float = DEFAULT_TEMPERATURE,
         response_mime_type: str = "text/plain",
     ) -> str:
-        """
-        Generate content using Gemini.
-
-        Args:
-            prompt: Input prompt.
-            temperature: Sampling temperature.
-            response_mime_type: Expected response format.
-                                "text/plain" for normal text.
-                                "application/json" for structured JSON.
-        """
 
         print("Sending request to Gemini...")
 
         response = self.client.models.generate_content(
             model=self.model,
             contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=temperature,
-                response_mime_type=response_mime_type,
-            ),
+            config={
+                "temperature": temperature,
+                "response_mime_type": response_mime_type,
+            },
         )
 
         print("Response received from Gemini.")
 
-        return response.text.strip()
+        return response.text
 
 
 if __name__ == "__main__":
 
     print("Starting StudyOS AI client...")
+    print(f"Using model: {GEMINI_MODEL}")
 
     client = GeminiClient()
 
-    print(f"Using model: {client.model}")
-
     response = client.generate(
-        "Reply with exactly the word SUCCESS.",
+        "Reply with exactly one word: SUCCESS"
     )
 
     print("\nGemini Response:\n")
-
     print(response)

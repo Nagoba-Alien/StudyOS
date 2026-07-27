@@ -61,10 +61,23 @@ Lecture:
 
         response = self.client.generate(
             prompt,
-            response_mime_type="application/json"
+            response_mime_type="application/json",
         )
 
-        data = json.loads(response)
+        try:
+            data = json.loads(response)
+
+        except json.JSONDecodeError as e:
+
+            print("\n" + "=" * 80)
+            print("Gemini returned invalid JSON")
+            print("=" * 80)
+            print(response)
+            print("=" * 80)
+
+            raise RuntimeError(
+                "Failed to parse Gemini JSON response."
+            ) from e
 
         flashcards = [
             Flashcard(
