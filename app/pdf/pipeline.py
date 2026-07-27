@@ -1,3 +1,6 @@
+from pathlib import Path
+
+from app.ai.artifact_generator import AIArtifactGenerator
 from app.drive.drive import build_drive_tree
 from app.pdf.cleaner import clean_text
 from app.pdf.downloader import (
@@ -15,12 +18,15 @@ def process_library():
     """
     Download every PDF, extract text,
     clean it, save it,
-    and populate metadata.
+    populate metadata,
+    and generate AI study artifacts.
     """
 
     service = get_drive_service()
 
     library = build_drive_tree()
+
+    ai_generator = AIArtifactGenerator()
 
     total = 0
 
@@ -36,11 +42,19 @@ def process_library():
 
                 print(f"\nProcessing: {pdf.name}")
 
+                # ----------------------------------------
+                # Download PDF
+                # ----------------------------------------
+
                 download_pdf(
                     service,
                     pdf.file_id,
                     pdf.local_pdf_path,
                 )
+
+                # ----------------------------------------
+                # Extract & clean text
+                # ----------------------------------------
 
                 raw_text = extract_text(
                     pdf.local_pdf_path
@@ -55,24 +69,46 @@ def process_library():
                     pdf.local_text_path,
                 )
 
+                # ----------------------------------------
+                # Populate metadata
+                # ----------------------------------------
+
                 populate_metadata(pdf)
 
-                print(
-                    f"✓ Pages      : {pdf.page_count}"
-                )
-
-                print(
-                    f"✓ Words      : {pdf.word_count}"
-                )
-
-                print(
-                    f"✓ Characters : {pdf.character_count}"
-                )
-
+                print(f"✓ Pages      : {pdf.page_count}")
+                print(f"✓ Words      : {pdf.word_count}")
+                print(f"✓ Characters : {pdf.character_count}")
                 print(
                     f"✓ Read Time  : "
                     f"{pdf.estimated_read_time} min"
                 )
+
+                # ----------------------------------------
+                # Generate AI artifacts
+                # ----------------------------------------
+
+                print("Generating AI artifacts...")
+
+                artifact = ai_generator.generate(
+                    cleaned_text
+                )
+
+                ai_output_dir = (
+                    Path(pdf.local_text_path).parent
+                    / "ai"
+                )
+
+                stem = Path(
+                    pdf.local_text_path
+                ).stem
+
+                ai_generator.save(
+                    artifact,
+                    ai_output_dir,
+                    stem,
+                )
+
+                print("✓ AI artifacts generated.")
 
                 total += 1
 
