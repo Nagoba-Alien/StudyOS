@@ -1,4 +1,12 @@
+from pathlib import Path
+
 from app.auth.auth import authenticate
+from app.models import (
+    Course,
+    PDFDocument,
+    Semester,
+    StudyLibrary,
+)
 
 FOLDER_MIME = "application/vnd.google-apps.folder"
 
@@ -86,14 +94,7 @@ def list_pdfs(service, parent_id):
 
 def build_drive_tree():
     """
-    Build the StudyOS folder hierarchy.
-
-    Structure:
-
-    StudyOS
-        ├── Semester
-        │      ├── Course
-        │      │      ├── PDFs
+    Build the StudyOS library from Google Drive.
     """
 
     service = get_drive_service()
@@ -105,87 +106,100 @@ def build_drive_tree():
             "StudyOS folder not found in Google Drive."
         )
 
-    tree = {
-        "id": study_root["id"],
-        "name": study_root["name"],
-        "semesters": [],
-    }
+    library = StudyLibrary()
 
     semester_folders = list_subfolders(
         service,
         study_root["id"],
     )
 
-    for semester in semester_folders:
+    for semester_folder in semester_folders:
 
-        semester_node = {
-            "id": semester["id"],
-            "name": semester["name"],
-            "courses": [],
-        }
+        semester = Semester(
+            name=semester_folder["name"]
+        )
 
         course_folders = list_subfolders(
             service,
-            semester["id"],
+            semester_folder["id"],
         )
 
-        for course in course_folders:
+        for course_folder in course_folders:
 
-            course_node = {
-                "id": course["id"],
-                "name": course["name"],
-                "pdfs": [],
-            }
+            course = Course(
+                name=course_folder["name"]
+            )
 
             pdfs = list_pdfs(
                 service,
-                course["id"],
+                course_folder["id"],
             )
 
             for pdf in pdfs:
 
-                course_node["pdfs"].append(
-                    {
-                        "id": pdf["id"],
-                        "name": pdf["name"],
-                    }
+                pdf_document = PDFDocument(
+                    file_id=pdf["id"],
+                    name=pdf["name"],
+                    drive_path=(
+                        f"{semester.name}/"
+                        f"{course.name}/"
+                        f"{pdf['name']}"
+                    ),
+                    local_pdf_path=(
+                        Path("output")
+                        / semester.name
+                        / course.name
+                        / pdf["name"]
+                    ),
+                    local_text_path=(
+                        Path("output")
+                        / semester.name
+                        / course.name
+                        / f"{Path(pdf['name']).stem}.txt"
+                    ),
                 )
 
-            semester_node["courses"].append(course_node)
+                course.pdfs.append(pdf_document)
 
-        tree["semesters"].append(semester_node)
+            semester.courses.append(course)
 
-    return tree
+        library.semesters.append(semester)
+
+    return library
 
 
-def print_tree(tree):
+def print_tree(library: StudyLibrary):
     """
-    Pretty-print the Drive hierarchy.
+    Pretty-print the StudyOS library.
     """
 
-    print(f"\n📁 {tree['name']}")
+    print("\n📚 StudyOS")
 
-    for semester in tree["semesters"]:
+    for semester in library.semesters:
 
-        print(f"\n├── 📂 {semester['name']}")
+        print(f"\n├── 📂 {semester.name}")
 
-        for course in semester["courses"]:
+        for course in semester.courses:
 
-            print(f"│   ├── 📘 {course['name']}")
+            print(f"│   ├── 📘 {course.name}")
 
-            for pdf in course["pdfs"]:
+            for pdf in course.pdfs:
 
-                print(f"│   │   ├── 📄 {pdf['name']}")
+                print(f"│   │   ├── 📄 {pdf.name}")
 
 
 if __name__ == "__main__":
 
     try:
 
-        drive_tree = build_drive_tree()
+        library = build_drive_tree()
 
-        print_tree(drive_tree)
+        print_tree(library)
 
     except FileNotFoundError as e:
 
         print(e)
+
+    except Exception as e:
+
+        print(f"Unexpected error: {e}")
