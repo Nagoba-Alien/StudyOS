@@ -2,6 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 
 
 class GeminiClient:
@@ -10,12 +11,11 @@ class GeminiClient:
     """
 
     def __init__(self):
-
         load_dotenv()
 
         api_key = os.getenv("GEMINI_API_KEY")
 
-        if api_key is None:
+        if not api_key:
             raise ValueError(
                 "GEMINI_API_KEY not found in .env"
             )
@@ -24,15 +24,24 @@ class GeminiClient:
             api_key=api_key
         )
 
-        self.model = "models/gemini-flash-lite-latest"
+        # Stable model for StudyOS
+        self.model = "models/gemini-3.5-flash-lite"
 
     def generate(
         self,
         prompt: str,
         temperature: float = 0.3,
+        response_mime_type: str = "text/plain",
     ) -> str:
         """
-        Generate text using Gemini.
+        Generate content using Gemini.
+
+        Args:
+            prompt: Input prompt.
+            temperature: Sampling temperature.
+            response_mime_type: Expected response format.
+                                "text/plain" for normal text.
+                                "application/json" for structured JSON.
         """
 
         print("Sending request to Gemini...")
@@ -40,9 +49,10 @@ class GeminiClient:
         response = self.client.models.generate_content(
             model=self.model,
             contents=prompt,
-            config={
-                "temperature": temperature,
-            },
+            config=types.GenerateContentConfig(
+                temperature=temperature,
+                response_mime_type=response_mime_type,
+            ),
         )
 
         print("Response received from Gemini.")
@@ -59,7 +69,7 @@ if __name__ == "__main__":
     print(f"Using model: {client.model}")
 
     response = client.generate(
-        "Reply with exactly the word: SUCCESS"
+        "Reply with exactly the word SUCCESS.",
     )
 
     print("\nGemini Response:\n")
