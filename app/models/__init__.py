@@ -1,3 +1,4 @@
+from .daily_briefing import DailyBriefing
 from .pdf_document import PDFDocument
 from .course import Course
 from .semester import Semester

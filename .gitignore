@@ -93,3 +93,7 @@ output/ai/
 
 # Personal study data
 output/
+
+token.json
+token_drive_backup.json
+credentials.json
