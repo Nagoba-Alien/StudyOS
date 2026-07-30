@@ -1,38 +1,54 @@
+from app.adaptive.analytics import LearningAnalytics
+from app.adaptive.forgetting import ForgettingModel
+from app.adaptive.mastery import MasteryModel
+from app.adaptive.scorer import AdaptiveScorer
+
 from app.planner.loader import RevisionLoader
-from app.planner.scorer import RevisionScorer
 from app.planner.scheduler import RevisionScheduler
 from app.planner.session import StudySessionTracker
 
 
 def main():
 
+    # ----------------------------------------
+    # Initialize components
+    # ----------------------------------------
+
     loader = RevisionLoader()
 
-    scorer = RevisionScorer()
+    scorer = AdaptiveScorer()
 
     scheduler = RevisionScheduler()
 
     tracker = StudySessionTracker()
 
+    mastery_model = MasteryModel()
+
+    forgetting_model = ForgettingModel()
+
+    analytics = LearningAnalytics()
+
+    # ----------------------------------------
     # Load study resources
+    # ----------------------------------------
 
     items = loader.load()
 
     if not items:
 
-        print(
-            "No revision items found."
-        )
+        print("No revision items found.")
 
         return
 
-    # Calculate priorities
+    # ----------------------------------------
+    # Compute adaptive priorities
+    # ----------------------------------------
 
-    items = scorer.score_all(
-        items
-    )
+    items = scorer.score_all(items)
 
-    # Generate revision plan
+    # ----------------------------------------
+    # Build today's study session
+    # ----------------------------------------
 
     session = scheduler.schedule(
         items,
@@ -42,14 +58,12 @@ def main():
     print()
 
     print("=" * 70)
-    print("Today's Revision Plan")
+    print("Today's Adaptive Revision Plan")
     print("=" * 70)
 
     if not session.items:
 
-        print(
-            "No tasks scheduled."
-        )
+        print("No tasks scheduled.")
 
     else:
 
@@ -58,20 +72,38 @@ def main():
             start=1,
         ):
 
-            print(
-                f"{index}. "
-                f"{item.course} - "
-                f"{item.title}"
+            mastery = mastery_model.estimate(
+                item.course,
+                item.title,
+            )
+
+            retention = forgetting_model.estimate(
+                item.course,
+                item.title,
             )
 
             print(
-                f"   Priority : "
-                f"{item.priority:.2f}"
+                f"{index}. {item.course} - {item.title}"
             )
 
             print(
-                f"   Duration : "
-                f"{item.estimated_minutes} min"
+                f"   Priority   : {item.priority:.2f}/100"
+            )
+
+            print(
+                f"   Mastery    : {mastery:.1f}%"
+            )
+
+            print(
+                f"   Retention  : {retention:.1f}%"
+            )
+
+            print(
+                f"   Difficulty : {item.difficulty_score}/5"
+            )
+
+            print(
+                f"   Duration   : {item.estimated_minutes} min"
             )
 
             print()
@@ -79,18 +111,80 @@ def main():
     print("-" * 70)
 
     print(
-        f"Total Time : "
-        f"{session.total_minutes} minutes"
+        f"Total Study Time : {session.total_minutes} minutes"
     )
 
-    # Collect study feedback
+    # ----------------------------------------
+    # Record study feedback
+    # ----------------------------------------
 
     if session.items:
 
-        tracker.record(
-            session
-        )
+        tracker.record(session)
+
+    # ----------------------------------------
+    # Learning Analytics
+    # ----------------------------------------
+
+    print()
+
+    print("=" * 70)
+    print("Learning Analytics")
+    print("=" * 70)
+
+    average_mastery = analytics.average_mastery(items)
+
+    average_retention = analytics.average_retention(items)
+
+    print(
+        f"Average Mastery   : {average_mastery:.1f}%"
+    )
+
+    print(
+        f"Average Retention : {average_retention:.1f}%"
+    )
+
+    print()
+
+    weakest = analytics.weakest_items(items)
+
+    print("Weakest Topics")
+
+    if weakest:
+
+        for topic, score in weakest:
+
+            print(
+                f"  {topic:<45} {score:.1f}%"
+            )
+
+    else:
+
+        print("  None")
+
+    print()
+
+    strongest = analytics.strongest_items(items)
+
+    print("Strongest Topics")
+
+    if strongest:
+
+        for topic, score in strongest:
+
+            print(
+                f"  {topic:<45} {score:.1f}%"
+            )
+
+    else:
+
+        print("  None")
+
+    print()
+
+    print("=" * 70)
 
 
 if __name__ == "__main__":
+
     main()
