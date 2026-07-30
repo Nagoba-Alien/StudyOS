@@ -2,6 +2,7 @@ from datetime import date
 from pathlib import Path
 
 from app.agent.report import DailyReportGenerator
+from app.exporters.calendar import CalendarExporter
 from app.planner.service import PlannerService
 
 
@@ -54,35 +55,63 @@ def main():
     )
 
     # ----------------------------------------
+    # Export to Google Calendar
+    # ----------------------------------------
+
+    calendar = CalendarExporter()
+
+    calendar.export(
+        session=briefing,
+    )
+
+    # ----------------------------------------
     # Console summary
     # ----------------------------------------
 
-    print("Daily report generated successfully.")
+    print(
+        "Daily report generated successfully."
+    )
+
     print()
 
-    print(f"Date: {briefing.date}")
+    print(
+        f"Date: {briefing.date}"
+    )
 
     print(
         f"Revision items: {len(briefing.items)}"
     )
 
     print(
-        f"Total study time: {briefing.total_minutes} minutes"
+        f"Total study time: "
+        f"{briefing.total_minutes} minutes"
     )
 
     print(
-        f"Average mastery: {briefing.average_mastery:.1f}%"
+        f"Average mastery: "
+        f"{briefing.average_mastery:.1f}%"
     )
 
     print(
-        f"Average retention: {briefing.average_retention:.1f}%"
+        f"Average retention: "
+        f"{briefing.average_retention:.1f}%"
     )
 
     print()
 
-    print("Saved to:")
+    print(
+        "Saved to:"
+    )
 
-    print(report_path.resolve())
+    print(
+        report_path.resolve()
+    )
+
+    print()
+
+    print(
+        "Google Calendar updated successfully."
+    )
 
 
 if __name__ == "__main__":
